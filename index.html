@@ -1,0 +1,1400 @@
+<!DOCTYPE html>
+<html lang="pt-BR" class="dark h-full">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Placar Profissional AMIP - Tênis de Mesa</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        amip: {
+                            blue: '#003399',
+                            darkblue: '#001a4d',
+                            accentblue: '#0055ff',
+                            gold: '#ffcc00',
+                            red: '#e60000',
+                            green: '#00b33c',
+                            darkbg: '#080c18',
+                            cardbg: '#101628',
+                            panelbg: '#162038'
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'system-ui', 'sans-serif'],
+                        digital: ['Impact', 'Trebuchet MS', 'sans-serif'],
+                        mono: ['Courier New', 'Courier', 'monospace']
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- FontAwesome icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        /* Strict 100vh Viewport Setup without scrolling */
+        html, body {
+            height: 100%;
+            max-height: 100vh;
+            overflow: hidden !important;
+            user-select: none;
+            background-color: #080c18;
+            color: #f3f4f6;
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+        }
+
+        /* Digital Display Score Typography */
+        .digital-score {
+            font-family: 'Impact', 'Trebuchet MS', sans-serif;
+            font-size: clamp(2.8rem, 8.5vh, 6.2rem);
+            line-height: 0.95;
+            letter-spacing: -2px;
+            text-shadow: 0 0 18px rgba(255, 204, 0, 0.25);
+        }
+
+        .serve-clock-digit {
+            font-family: 'Courier New', monospace;
+            font-weight: 900;
+            font-size: clamp(1.8rem, 5vh, 3.2rem);
+        }
+
+        /* Serve indicator pulse animation */
+        @keyframes pulse-serve {
+            0%, 100% { transform: scale(1); opacity: 1; filter: drop-shadow(0 0 6px #ffcc00); }
+            50% { transform: scale(1.15); opacity: 0.85; filter: drop-shadow(0 0 12px #ffcc00); }
+        }
+        .serve-active {
+            animation: pulse-serve 1.2s infinite ease-in-out;
+        }
+
+        /* Hide custom scrollbars */
+        ::-webkit-scrollbar { display: none; }
+    </style>
+</head>
+<body class="h-screen max-h-screen overflow-hidden flex flex-col p-1.5 md:p-2 box-border bg-amip-darkbg text-gray-100">
+
+    <!-- ==================== CONTAINER PRINCIPAL (STRICT 100vh FIT) ==================== -->
+    <div id="main-app" class="h-full flex flex-col justify-between max-w-7xl mx-auto w-full gap-1 md:gap-1.5 min-h-0">
+
+        <!-- 1. HEADER COMPACTO COM CONTROLES -->
+        <header class="bg-amip-cardbg border border-amip-blue/40 rounded-xl px-2.5 py-1.5 flex items-center justify-between shrink-0 shadow-lg gap-2">
+            
+            <!-- Left: Brand & Location (NOW A CLICKABLE BUTTON) -->
+            <button onclick="openAmipInfoModal()" class="flex items-center gap-2 shrink-0 hover:bg-white/5 p-1 -ml-1 rounded-lg transition text-left cursor-pointer active:scale-95" title="Conheça a História da AMIP">
+                <div class="bg-amip-blue p-1 rounded-lg border border-amip-gold flex items-center justify-center shadow-lg">
+                    <i class="fa-solid fa-table-tennis-paddle-ball text-amip-gold text-base md:text-lg"></i>
+                </div>
+                <div>
+                    <h1 class="text-[11px] md:text-xs font-black tracking-wider text-white leading-none">AMIP CARUARU - PE</h1>
+                    <p class="text-[8px] md:text-[9px] text-amip-gold font-medium leading-tight">Associação dos Mesatenistas</p>
+                </div>
+            </button>
+
+            <!-- Center: Category & Action Controls -->
+            <div class="flex flex-col items-center gap-1 flex-1 min-w-0">
+                <!-- Top Row: Title & Format & Tutorial -->
+                <div class="flex items-center gap-2 bg-amip-darkbg/80 px-2.5 py-0.5 rounded-lg border border-gray-800 w-full max-w-md justify-center">
+                    
+                    <!-- NOVO BOTÃO TUTORIAL NA MESMA LINHA -->
+                    <button onclick="openTutorialModal()" class="bg-blue-600/30 hover:bg-blue-500/50 text-blue-300 border border-blue-500/50 px-2 py-0.5 rounded text-[9px] font-bold transition flex items-center gap-1 shrink-0 active:scale-95" title="Tutorial Didático do Placar">
+                        <i class="fa-solid fa-circle-info"></i>
+                        <span class="hidden sm:inline">Tutorial</span>
+                    </button>
+
+                    <input type="text" id="match-title" value="FINAL MASCULINA - ETAPA CARUARU" 
+                        class="bg-transparent text-[10px] md:text-[11px] font-bold text-gray-200 focus:outline-none focus:text-amip-gold text-center w-full truncate border-b border-transparent focus:border-amip-gold transition" title="Editar nome do evento">
+                    
+                    <span class="text-gray-700 text-xs hidden sm:inline">|</span>
+                    
+                    <select id="set-mode" onchange="changeSetMode(this.value)" class="bg-amip-panelbg text-[9px] md:text-[10px] font-bold text-amip-gold rounded px-1 py-0.5 border border-gray-700 cursor-pointer focus:outline-none shrink-0">
+                        <option value="3">Melhor de 3</option>
+                        <option value="5" selected>Melhor de 5</option>
+                        <option value="7">Melhor de 7</option>
+                    </select>
+                </div>
+                
+                <!-- Bottom Row: Action Toolbar (Inverter, Trocar, Desfazer, Reiniciar) -->
+                <div class="flex items-center gap-1.5 justify-center">
+                    <button onclick="manualToggleServe()" class="bg-amip-panelbg hover:bg-gray-700 text-amip-gold border border-amip-gold/30 px-2 py-0.5 rounded-lg text-[9px] font-bold transition flex items-center gap-1 active:scale-95" title="Alternar Quem Saca">
+                        <i class="fa-solid fa-table-tennis-paddle-ball"></i>
+                        <span class="hidden sm:inline">Inverter Saque</span>
+                    </button>
+
+                    <button onclick="swapSides()" class="bg-amip-panelbg hover:bg-gray-700 text-blue-300 border border-blue-500/30 px-2 py-0.5 rounded-lg text-[9px] font-bold transition flex items-center gap-1 active:scale-95" title="Inverter Lados da Mesa">
+                        <i class="fa-solid fa-arrow-right-arrow-left"></i>
+                        <span class="hidden sm:inline">Trocar Lados</span>
+                    </button>
+
+                    <button onclick="undo()" class="bg-gray-800 hover:bg-gray-700 text-gray-200 border border-gray-700 px-2 py-0.5 rounded-lg text-[9px] font-bold transition flex items-center gap-1 active:scale-95" title="Desfazer Última Ação (Ctrl+Z)">
+                        <i class="fa-solid fa-rotate-left text-yellow-400"></i>
+                        <span class="hidden sm:inline">Desfazer</span>
+                    </button>
+
+                    <button onclick="confirmResetMatch()" class="bg-red-950/50 hover:bg-red-800/80 text-red-200 border border-red-600/50 px-2 py-0.5 rounded-lg text-[9px] font-extrabold transition flex items-center gap-1 active:scale-95" title="Reiniciar Partida Inteira">
+                        <i class="fa-solid fa-trash-can"></i>
+                        <span class="hidden sm:inline">Reiniciar</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Right: Tools -->
+            <div class="flex items-center gap-1 shrink-0">
+                <!-- Sound Toggle -->
+                <button onclick="toggleAudio()" id="audio-btn" class="bg-amip-panelbg hover:bg-gray-700 text-gray-300 hover:text-white px-2 py-1 rounded-lg text-[10px] font-medium border border-gray-700 transition flex items-center gap-1 active:scale-95" title="Ativar/Desativar Efeitos Sonoros">
+                    <i class="fa-solid fa-volume-high text-amip-gold"></i>
+                </button>
+
+                <!-- Fullscreen Toggle -->
+                <button onclick="toggleFullscreen()" class="bg-amip-panelbg hover:bg-gray-700 text-gray-300 hover:text-white px-2 py-1 rounded-lg text-[10px] font-medium border border-gray-700 transition flex items-center gap-1 active:scale-95" title="Modo Tela Cheia">
+                    <i class="fa-solid fa-expand text-blue-400"></i>
+                </button>
+
+                <!-- Súmula Digital Modal Trigger -->
+                <button onclick="openSumulaModal()" class="bg-emerald-950/80 hover:bg-emerald-900/80 text-emerald-400 border border-emerald-500/40 px-2 py-1 rounded-lg text-[10px] font-bold transition flex items-center gap-1 active:scale-95" title="Ver e Enviar Súmula Digital da Partida via WhatsApp">
+                    <i class="fa-brands fa-whatsapp text-emerald-400 text-sm"></i>
+                    <span class="hidden md:inline">Súmula</span>
+                </button>
+
+                <!-- Open Athlete Display (16:9 Window) -->
+                <button onclick="openSecondScreen()" class="bg-gradient-to-r from-amip-blue to-amip-accentblue hover:from-blue-600 hover:to-blue-500 text-white px-2.5 py-1 rounded-lg text-[10px] font-bold shadow border border-blue-400/30 transition flex items-center gap-1.5 active:scale-95" title="Abrir Segunda Tela dos Atletas em Widescreen 16:9">
+                    <i class="fa-solid fa-desktop"></i>
+                    <span class="hidden lg:inline">Tela 16:9</span>
+                </button>
+            </div>
+        </header>
+
+        <!-- 2. MAIN SIDE-BY-SIDE SCOREBOARD (3 COLUMNS) -->
+        <main class="flex-1 grid grid-cols-12 gap-1.5 md:gap-2 min-h-0 items-stretch mt-0.5">
+
+            <!-- ==================== JOGADOR A (MESA ESQUERDA) ==================== -->
+            <section id="player1-card" class="col-span-5 bg-amip-cardbg border-2 border-amip-blue/50 rounded-xl p-2 md:p-2.5 flex flex-col justify-between relative overflow-hidden transition-all duration-300 shadow-xl min-h-0">
+                <div class="absolute -right-8 -bottom-8 text-amip-blue/10 pointer-events-none select-none">
+                    <i class="fa-solid fa-user text-8xl"></i>
+                </div>
+
+                <!-- P1 Header -->
+                <div class="flex justify-between items-start gap-2 relative z-10 shrink-0">
+                    <div class="flex-1 min-w-0">
+                        <div class="flex items-center gap-1.5">
+                            <span class="text-[9px] font-extrabold px-1.5 py-0.2 bg-amip-blue/60 text-blue-200 rounded">ATLETA A</span>
+                            <span id="p1-serve-badge" class="hidden text-[9px] font-extrabold px-1.5 py-0.2 bg-amip-gold text-black rounded-full uppercase tracking-wider animate-pulse">SAQUE</span>
+                        </div>
+                        <input type="text" id="p1-name" value="SÉRGIO SILVA" 
+                            class="w-full bg-transparent font-black text-base md:text-lg text-white tracking-wide border-b border-gray-700 focus:border-amip-gold focus:outline-none py-0.5 mt-0.5 truncate" placeholder="Nome Jogador 1">
+                        <input type="text" id="p1-club" value="AMIP CARUARU" 
+                            class="w-full bg-transparent text-[10px] text-amip-gold font-semibold focus:outline-none truncate" placeholder="Clube/Cidade">
+                    </div>
+
+                    <!-- Sets Counter -->
+                    <div class="text-right bg-amip-darkbg/90 border border-gray-800 rounded-lg px-2 py-1 min-w-[60px] shrink-0">
+                        <span class="text-[8px] font-extrabold text-gray-400 block uppercase">SETS</span>
+                        <span id="p1-sets" class="text-2xl md:text-3xl font-black text-amip-gold leading-none">0</span>
+                    </div>
+                </div>
+
+                <!-- Giant Digital Score Clickable Area -->
+                <div class="my-auto py-1 flex flex-col items-center justify-center relative z-10 min-h-0">
+                    <div onclick="addPoint(1)" class="cursor-pointer group flex flex-col items-center justify-center w-full bg-amip-darkbg/90 hover:bg-black/80 border border-gray-800 hover:border-amip-gold/50 rounded-xl py-1.5 md:py-2 px-3 transition shadow-inner">
+                        <div id="p1-score" class="digital-score text-amip-gold group-hover:scale-105 transition duration-150">00</div>
+                        <span class="text-[9px] text-gray-400 uppercase tracking-widest font-bold group-hover:text-amip-gold transition mt-0.5">Clique para +1 Ponto</span>
+                    </div>
+
+                    <!-- Serve Ball Indicator -->
+                    <div id="p1-serve-ball" class="mt-1 flex items-center gap-1.5 transition-all opacity-20">
+                        <i class="fa-solid fa-table-tennis-paddle-ball text-amip-gold text-base serve-active"></i>
+                        <span class="text-[10px] font-bold text-amip-gold tracking-widest uppercase">Sacando</span>
+                    </div>
+                </div>
+
+                <!-- P1 Bottom Sanctions & Adjustments -->
+                <div class="relative z-10 pt-1 border-t border-gray-800/80 flex items-center justify-between gap-1 shrink-0">
+                    <div class="flex gap-1">
+                        <button onclick="addPoint(1)" class="bg-emerald-600 hover:bg-emerald-500 text-white font-black px-2.5 py-1 rounded-lg text-xs shadow active:scale-95 transition" title="Adicionar Ponto (+)">
+                            +1
+                        </button>
+                        <button onclick="removePoint(1)" class="bg-gray-800 hover:bg-gray-700 text-gray-300 font-extrabold px-2 py-1 rounded-lg text-[11px] border border-gray-700 active:scale-95 transition" title="Remover Ponto">
+                            -1
+                        </button>
+                    </div>
+
+                    <div class="flex items-center gap-1">
+                        <button onclick="giveCard(1, 'yellow')" class="bg-yellow-500/20 hover:bg-yellow-500/40 text-yellow-300 border border-yellow-500/50 px-1.5 py-0.5 rounded text-[10px] font-bold transition flex items-center gap-1" title="Cartão Amarelo (Advertência)">
+                            <div class="w-2 h-3 bg-yellow-400 rounded-sm"></div>
+                            <span id="p1-yellow-count">0</span>
+                        </button>
+
+                        <button onclick="giveCard(1, 'red')" class="bg-red-600/20 hover:bg-red-600/40 text-red-400 border border-red-500/50 px-1.5 py-0.5 rounded text-[10px] font-bold transition flex items-center gap-1" title="Cartão Vermelho (+1 Ponto ao Oponente)">
+                            <div class="w-2 h-3 bg-red-600 rounded-sm"></div>
+                            <span id="p1-red-count">0</span>
+                        </button>
+
+                        <button id="p1-timeout-btn" onclick="triggerTimeout(1)" class="bg-amip-panelbg hover:bg-blue-900/60 text-blue-300 border border-blue-500/40 px-1.5 py-0.5 rounded text-[10px] font-bold transition" title="Solicitar Timeout (60s)">
+                            <i class="fa-solid fa-clock text-[9px]"></i> TO
+                        </button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ==================== PAINEL CENTRAL (CRONÔMETRO DE SAQUE & REGRAS) ==================== -->
+            <section class="col-span-2 bg-amip-cardbg border border-gray-800 rounded-xl p-1.5 md:p-2 flex flex-col justify-between items-center text-center shadow-xl min-h-0">
+
+                <!-- Mode Selector -->
+                <div class="w-full shrink-0">
+                    <span class="text-[9px] font-black uppercase text-gray-400 tracking-wider block">SERVE CLOCK</span>
+                    
+                    <div class="mt-1 flex items-center justify-center gap-0.5 bg-amip-darkbg p-0.5 rounded-lg border border-gray-800">
+                        <button onclick="setClockMode('AUTO')" id="mode-auto-btn" class="flex-1 text-[9px] font-extrabold py-0.5 rounded transition bg-amip-blue text-white shadow">
+                            AUTO
+                        </button>
+                        <button onclick="setClockMode('MANUAL')" id="mode-manual-btn" class="flex-1 text-[9px] font-extrabold py-0.5 rounded transition text-gray-400 hover:text-white">
+                            MANUAL
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Clock Display & Progress Circle -->
+                <div class="my-auto w-full flex flex-col items-center justify-center min-h-0 py-0.5">
+                    <div id="clock-display-container" class="bg-amip-darkbg border-2 border-amip-gold/40 rounded-xl p-1.5 w-full flex flex-col items-center justify-center shadow-inner relative overflow-hidden">
+                        <div id="clock-progress-bar" class="absolute bottom-0 left-0 h-1 bg-amip-gold transition-all duration-200" style="width: 100%;"></div>
+
+                        <span id="serve-clock-timer" class="serve-clock-digit text-amip-gold leading-none">15</span>
+                        <span class="text-[8px] font-bold text-gray-500 uppercase tracking-widest">SEGUNDOS</span>
+                    </div>
+
+                    <!-- Preset Duration Quick Buttons -->
+                    <div class="grid grid-cols-3 gap-0.5 w-full mt-1 shrink-0">
+                        <button onclick="setClockPreset(10)" class="preset-btn bg-amip-panelbg hover:bg-gray-700 text-gray-300 text-[9px] font-bold py-0.5 rounded border border-gray-800">10s</button>
+                        <button onclick="setClockPreset(15)" class="preset-btn bg-amip-blue text-white text-[9px] font-bold py-0.5 rounded border border-blue-400/40">15s</button>
+                        <button onclick="setClockPreset(20)" class="preset-btn bg-amip-panelbg hover:bg-gray-700 text-gray-300 text-[9px] font-bold py-0.5 rounded border border-gray-800">20s</button>
+                        <button onclick="setClockPreset(25)" class="preset-btn bg-amip-panelbg hover:bg-gray-700 text-gray-300 text-[9px] font-bold py-0.5 rounded border border-gray-800">25s</button>
+                        <button onclick="setClockPreset(30)" class="preset-btn bg-amip-panelbg hover:bg-gray-700 text-gray-300 text-[9px] font-bold py-0.5 rounded border border-gray-800">30s</button>
+                        <button onclick="promptCustomClock()" class="preset-btn bg-amip-panelbg hover:bg-gray-700 text-amip-gold text-[9px] font-bold py-0.5 rounded border border-gray-800">Custom</button>
+                    </div>
+                </div>
+
+                <!-- Controls & Whistle -->
+                <div class="w-full flex flex-col gap-1 shrink-0">
+                    <div class="flex gap-1 w-full">
+                        <button id="clock-start-btn" onclick="toggleClock()" class="flex-1 bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold py-1 px-1 rounded-lg text-[11px] shadow transition active:scale-95 flex items-center justify-center gap-1">
+                            <i class="fa-solid fa-play text-[9px]"></i>
+                            <span id="start-btn-label">Iniciar</span>
+                        </button>
+                        <button onclick="resetClock()" class="bg-gray-800 hover:bg-gray-700 text-gray-200 font-bold p-1 rounded-lg text-[11px] border border-gray-700 transition active:scale-95" title="Reiniciar Relógio (R)">
+                            <i class="fa-solid fa-rotate-left"></i>
+                        </button>
+                    </div>
+
+                    <button onclick="playWhistleSound()" class="w-full bg-amip-panelbg hover:bg-yellow-500/20 text-amip-gold hover:text-yellow-300 border border-amip-gold/30 font-bold py-0.5 rounded-lg text-[9px] transition flex items-center justify-center gap-1 active:scale-95">
+                        <i class="fa-solid fa-bullhorn"></i> Apito Árbitro
+                    </button>
+                </div>
+            </section>
+
+            <!-- ==================== JOGADOR B (MESA DIREITA) ==================== -->
+            <section id="player2-card" class="col-span-5 bg-amip-cardbg border-2 border-amip-blue/50 rounded-xl p-2 md:p-2.5 flex flex-col justify-between relative overflow-hidden transition-all duration-300 shadow-xl min-h-0">
+                <div class="absolute -left-8 -bottom-8 text-amip-blue/10 pointer-events-none select-none">
+                    <i class="fa-solid fa-user text-8xl"></i>
+                </div>
+
+                <!-- P2 Header -->
+                <div class="flex justify-between items-start gap-2 relative z-10 shrink-0">
+                    <!-- Sets Counter -->
+                    <div class="text-left bg-amip-darkbg/90 border border-gray-800 rounded-lg px-2 py-1 min-w-[60px] shrink-0">
+                        <span class="text-[8px] font-extrabold text-gray-400 block uppercase">SETS</span>
+                        <span id="p2-sets" class="text-2xl md:text-3xl font-black text-amip-gold leading-none">0</span>
+                    </div>
+
+                    <div class="flex-1 text-right min-w-0">
+                        <div class="flex items-center justify-end gap-1.5">
+                            <span id="p2-serve-badge" class="hidden text-[9px] font-extrabold px-1.5 py-0.2 bg-amip-gold text-black rounded-full uppercase tracking-wider animate-pulse">SAQUE</span>
+                            <span class="text-[9px] font-extrabold px-1.5 py-0.2 bg-amip-blue/60 text-blue-200 rounded">ATLETA B</span>
+                        </div>
+                        <input type="text" id="p2-name" value="LUCAS MENEZES" 
+                            class="w-full bg-transparent font-black text-base md:text-lg text-white tracking-wide text-right border-b border-gray-700 focus:border-amip-gold focus:outline-none py-0.5 mt-0.5 truncate" placeholder="Nome Jogador 2">
+                        <input type="text" id="p2-club" value="SPORT RECIFE" 
+                            class="w-full bg-transparent text-[10px] text-amip-gold font-semibold text-right focus:outline-none truncate" placeholder="Clube/Cidade">
+                    </div>
+                </div>
+
+                <!-- Giant Digital Score Clickable Area -->
+                <div class="my-auto py-1 flex flex-col items-center justify-center relative z-10 min-h-0">
+                    <div onclick="addPoint(2)" class="cursor-pointer group flex flex-col items-center justify-center w-full bg-amip-darkbg/90 hover:bg-black/80 border border-gray-800 hover:border-amip-gold/50 rounded-xl py-1.5 md:py-2 px-3 transition shadow-inner">
+                        <div id="p2-score" class="digital-score text-amip-gold group-hover:scale-105 transition duration-150">00</div>
+                        <span class="text-[9px] text-gray-400 uppercase tracking-widest font-bold group-hover:text-amip-gold transition mt-0.5">Clique para +1 Ponto</span>
+                    </div>
+
+                    <!-- Serve Ball Indicator -->
+                    <div id="p2-serve-ball" class="mt-1 flex items-center gap-1.5 transition-all opacity-20">
+                        <span class="text-[10px] font-bold text-amip-gold tracking-widest uppercase">Sacando</span>
+                        <i class="fa-solid fa-table-tennis-paddle-ball text-amip-gold text-base serve-active"></i>
+                    </div>
+                </div>
+
+                <!-- P2 Bottom Sanctions & Adjustments -->
+                <div class="relative z-10 pt-1 border-t border-gray-800/80 flex items-center justify-between gap-1 shrink-0">
+                    <div class="flex items-center gap-1">
+                        <button id="p2-timeout-btn" onclick="triggerTimeout(2)" class="bg-amip-panelbg hover:bg-blue-900/60 text-blue-300 border border-blue-500/40 px-1.5 py-0.5 rounded text-[10px] font-bold transition" title="Solicitar Timeout (60s)">
+                            <i class="fa-solid fa-clock text-[9px]"></i> TO
+                        </button>
+
+                        <button onclick="giveCard(2, 'yellow')" class="bg-yellow-500/20 hover:bg-yellow-500/40 text-yellow-300 border border-yellow-500/50 px-1.5 py-0.5 rounded text-[10px] font-bold transition flex items-center gap-1" title="Cartão Amarelo (Advertência)">
+                            <div class="w-2 h-3 bg-yellow-400 rounded-sm"></div>
+                            <span id="p2-yellow-count">0</span>
+                        </button>
+
+                        <button onclick="giveCard(2, 'red')" class="bg-red-600/20 hover:bg-red-600/40 text-red-400 border border-red-500/50 px-1.5 py-0.5 rounded text-[10px] font-bold transition flex items-center gap-1" title="Cartão Vermelho (+1 Ponto ao Oponente)">
+                            <div class="w-2 h-3 bg-red-600 rounded-sm"></div>
+                            <span id="p2-red-count">0</span>
+                        </button>
+                    </div>
+
+                    <div class="flex gap-1">
+                        <button onclick="removePoint(2)" class="bg-gray-800 hover:bg-gray-700 text-gray-300 font-extrabold px-2 py-1 rounded-lg text-[11px] border border-gray-700 active:scale-95 transition" title="Remover Ponto">
+                            -1
+                        </button>
+                        <button onclick="addPoint(2)" class="bg-emerald-600 hover:bg-emerald-500 text-white font-black px-2.5 py-1 rounded-lg text-xs shadow active:scale-95 transition" title="Adicionar Ponto (+)">
+                            +1
+                        </button>
+                    </div>
+                </div>
+            </section>
+
+        </main>
+
+        <!-- 3. FOOTER COMPACTO (APENAS HISTÓRICO) -->
+        <footer class="bg-amip-cardbg border border-gray-800 rounded-xl px-2.5 py-1 flex items-center justify-center shrink-0 shadow-lg mt-0.5">
+            <!-- Sets History Summary -->
+            <div class="flex items-center gap-2">
+                <span class="text-[9px] font-black text-gray-400 uppercase tracking-wider">Histórico de Sets:</span>
+                <div id="sets-history-container" class="flex items-center gap-1.5 text-[11px] font-bold">
+                    <span class="text-gray-600 text-[10px] italic">Sem sets concluídos</span>
+                </div>
+            </div>
+        </footer>
+
+    </div>
+
+    <!-- ==================== MODAL 1: TIMEOUT (60 SEGUNDOS) ==================== -->
+    <div id="timeout-modal" class="fixed inset-0 bg-black/85 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-amip-cardbg border-2 border-amip-gold rounded-2xl p-5 max-w-xs w-full text-center shadow-2xl">
+            <div class="w-10 h-10 bg-amip-gold/20 rounded-full flex items-center justify-center mx-auto mb-2 text-amip-gold text-xl">
+                <i class="fa-solid fa-stopwatch"></i>
+            </div>
+            <h2 class="text-lg font-black text-white">TIMEOUT EM ANDAMENTO</h2>
+            <p id="timeout-player-name" class="text-xs font-bold text-amip-gold mb-2">ATLETA A</p>
+
+            <div class="bg-amip-darkbg border border-gray-800 rounded-xl py-3 my-2">
+                <span id="timeout-timer" class="text-5xl font-black text-white font-mono">60</span>
+                <span class="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mt-0.5">Segundos</span>
+            </div>
+
+            <button onclick="closeTimeoutModal()" class="w-full mt-3 bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-2 rounded-xl text-xs uppercase tracking-wider transition">
+                Concluir Timeout
+            </button>
+        </div>
+    </div>
+
+    <!-- ==================== MODAL 2: VITORIA DA PARTIDA ==================== -->
+    <div id="winner-modal" class="fixed inset-0 bg-black/90 backdrop-blur-md z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-amip-cardbg border-2 border-amip-gold rounded-2xl p-6 max-w-sm w-full text-center shadow-2xl relative">
+            <div class="text-amip-gold text-4xl mb-2 animate-bounce">
+                <i class="fa-solid fa-trophy"></i>
+            </div>
+            <span class="text-[10px] font-black uppercase tracking-widest text-amip-gold">FIM DE PARTIDA - VENCEDOR</span>
+            <h2 id="winner-name" class="text-2xl font-black text-white my-1">NOME DO VENCEDOR</h2>
+            <p id="winner-summary" class="text-xs font-semibold text-gray-300 mb-5">3 SETS A 1</p>
+
+            <div class="flex gap-2 justify-center">
+                <button onclick="openSumulaModal()" class="bg-emerald-600 hover:bg-emerald-500 text-white font-bold px-3 py-2 rounded-xl text-xs transition flex items-center gap-1.5">
+                    <i class="fa-brands fa-whatsapp"></i> Súmula no WhatsApp
+                </button>
+                <button onclick="confirmResetMatch()" class="bg-amip-blue hover:bg-blue-600 text-white font-bold px-4 py-2 rounded-xl text-xs transition shadow-lg">
+                    Nova Partida
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== MODAL 3: SÚMULA DIGITAL COM WHATSAPP ==================== -->
+    <div id="sumula-modal" class="fixed inset-0 bg-black/85 backdrop-blur-sm z-50 hidden flex items-center justify-center p-3">
+        <div class="bg-amip-cardbg border border-emerald-500/50 rounded-2xl p-4 md:p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto text-gray-100 shadow-2xl">
+            <!-- Header Súmula -->
+            <div class="flex justify-between items-center border-b border-gray-800 pb-3 mb-4">
+                <div class="flex items-center gap-2">
+                    <div class="bg-emerald-500/20 p-2 rounded-xl border border-emerald-500/40 text-emerald-400">
+                        <i class="fa-brands fa-whatsapp text-2xl"></i>
+                    </div>
+                    <div>
+                        <h2 class="text-base font-black text-white leading-tight">SÚMULA DIGITAL - AMIP CARUARU</h2>
+                        <p class="text-[10px] text-amip-gold font-semibold">Associação dos Mesatenistas do Interior de Pernambuco</p>
+                    </div>
+                </div>
+                <button onclick="closeSumulaModal()" class="bg-gray-800 hover:bg-gray-700 text-gray-300 px-2.5 py-1 rounded-lg text-xs font-bold">
+                    <i class="fa-solid fa-xmark"></i> Fechar
+                </button>
+            </div>
+
+            <!-- Content -->
+            <div id="sumula-content" class="space-y-4 text-xs">
+                <!-- Event Meta -->
+                <div class="grid grid-cols-2 gap-2 bg-amip-darkbg p-3 rounded-xl border border-gray-800">
+                    <div><span class="text-gray-400">Evento/Categoria:</span> <strong id="sum-event" class="text-white block">FINAL MASCULINA</strong></div>
+                    <div><span class="text-gray-400">Formato:</span> <strong id="sum-format" class="text-amip-gold block">Melhor de 5 Sets</strong></div>
+                </div>
+
+                <!-- Players Breakdown -->
+                <div class="grid grid-cols-2 gap-3">
+                    <div class="bg-amip-panelbg p-3 rounded-xl border border-blue-900/50">
+                        <span class="text-[9px] font-bold text-blue-300 uppercase">ATLETA A</span>
+                        <h3 id="sum-p1-name" class="font-black text-sm text-white">SÉRGIO SILVA</h3>
+                        <p id="sum-p1-club" class="text-[10px] text-amip-gold">AMIP CARUARU</p>
+                        <div class="mt-2 text-xs">Sets Ganhos: <strong id="sum-p1-sets" class="text-amip-gold font-extrabold">0</strong></div>
+                    </div>
+                    <div class="bg-amip-panelbg p-3 rounded-xl border border-blue-900/50 text-right">
+                        <span class="text-[9px] font-bold text-blue-300 uppercase">ATLETA B</span>
+                        <h3 id="sum-p2-name" class="font-black text-sm text-white">LUCAS MENEZES</h3>
+                        <p id="sum-p2-club" class="text-[10px] text-amip-gold">SPORT RECIFE</p>
+                        <div class="mt-2 text-xs">Sets Ganhos: <strong id="sum-p2-sets" class="text-amip-gold font-extrabold">0</strong></div>
+                    </div>
+                </div>
+
+                <!-- Sets Detail Table -->
+                <div>
+                    <h4 class="font-bold text-gray-300 mb-1">Detalhamento dos Sets</h4>
+                    <table class="w-full text-center border-collapse border border-gray-800 rounded-lg overflow-hidden">
+                        <thead>
+                            <tr class="bg-amip-darkbg text-gray-400 text-[10px] uppercase">
+                                <th class="p-2 border border-gray-800">Set</th>
+                                <th class="p-2 border border-gray-800">Atleta A</th>
+                                <th class="p-2 border border-gray-800">Atleta B</th>
+                                <th class="p-2 border border-gray-800">Vencedor do Set</th>
+                            </tr>
+                        </thead>
+                        <tbody id="sum-sets-tbody" class="divide-y divide-gray-800">
+                            <!-- Populated dynamically -->
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Discipline & Sanctions Summary -->
+                <div class="bg-amip-darkbg p-3 rounded-xl border border-gray-800 flex justify-between items-center text-center">
+                    <div>
+                        <span class="text-[10px] text-gray-400 block">Sanções Atleta A</span>
+                        <span id="sum-p1-cards" class="font-bold text-white">0 Amarelos | 0 Vermelhos</span>
+                    </div>
+                    <div>
+                        <span class="text-[10px] text-gray-400 block">Sanções Atleta B</span>
+                        <span id="sum-p2-cards" class="font-bold text-white">0 Amarelos | 0 Vermelhos</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- WhatsApp Direct Dispatch Panel -->
+            <div class="mt-5 pt-3 border-t border-gray-800 flex flex-col sm:flex-row items-center justify-between gap-2">
+                <div class="w-full sm:w-auto flex-1">
+                    <input type="text" id="wa-number" placeholder="Telefone com DDD (Opcional, ex: 81999999999)" 
+                        class="w-full bg-amip-darkbg border border-gray-700 text-xs rounded-xl px-3 py-2 text-white placeholder-gray-500 focus:outline-none focus:border-emerald-500">
+                </div>
+                <button onclick="sendScoresheetWhatsApp()" class="w-full sm:w-auto bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold px-5 py-2 rounded-xl text-xs flex items-center justify-center gap-2 shadow-lg transition active:scale-95">
+                    <i class="fa-brands fa-whatsapp text-lg"></i>
+                    <span>Enviar Súmula via WhatsApp</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== MODAL 4: TUTORIAL DIDÁTICO ==================== -->
+    <div id="tutorial-modal" class="fixed inset-0 bg-black/90 backdrop-blur-sm z-50 hidden flex items-center justify-center p-3">
+        <div class="bg-amip-cardbg border border-blue-500/50 rounded-2xl p-4 md:p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto text-gray-100 shadow-2xl">
+            <!-- Header Tutorial -->
+            <div class="flex justify-between items-center border-b border-gray-800 pb-3 mb-4">
+                <div class="flex items-center gap-2">
+                    <div class="bg-blue-500/20 p-2 rounded-xl border border-blue-500/40 text-blue-400">
+                        <i class="fa-solid fa-graduation-cap text-2xl"></i>
+                    </div>
+                    <div>
+                        <h2 class="text-base font-black text-white leading-tight">TUTORIAL DE ARBITRAGEM</h2>
+                        <p class="text-[10px] text-amip-gold font-semibold">Como utilizar o placar AMIP</p>
+                    </div>
+                </div>
+                <button onclick="closeTutorialModal()" class="bg-gray-800 hover:bg-gray-700 text-gray-300 px-2.5 py-1 rounded-lg text-xs font-bold transition">
+                    <i class="fa-solid fa-xmark"></i> Fechar
+                </button>
+            </div>
+
+            <!-- Content Tutorial -->
+            <div class="space-y-3 text-xs">
+                <div class="bg-amip-darkbg p-3 rounded-xl border border-gray-800">
+                    <h3 class="text-amip-gold font-bold mb-1 uppercase text-[10px] flex items-center gap-1.5"><i class="fa-solid fa-hand-pointer text-amip-gold"></i> 1. Pontuação e Regras</h3>
+                    <p class="text-gray-300 leading-relaxed text-[11px]">Clique no número gigante no centro de cada jogador ou use as <strong>setas do teclado (⬅️ e ➡️)</strong> para adicionar pontos. O sistema calcula automaticamente a troca de saques (a cada 2 pontos) e o Deuce (1 a 1). Quando um set acabar (11 pontos com diferença de 2), o placar é zerado e preparado para o próximo set de forma automática.</p>
+                </div>
+
+                <div class="bg-amip-darkbg p-3 rounded-xl border border-gray-800">
+                    <h3 class="text-blue-400 font-bold mb-1 uppercase text-[10px] flex items-center gap-1.5"><i class="fa-solid fa-stopwatch text-blue-400"></i> 2. Cronômetro de Saque (Serve Clock)</h3>
+                    <p class="text-gray-300 leading-relaxed text-[11px]">Localizado no painel central. Defina o modo <strong>AUTO</strong> para que o tempo inicie imediatamente ao adicionar um ponto, ou <strong>MANUAL</strong> para controlar com o botão "Iniciar" (ou barra de espaço). Você pode configurar o tempo clicando nas opções rápidas (10s, 15s...).</p>
+                </div>
+
+                <div class="bg-amip-darkbg p-3 rounded-xl border border-gray-800">
+                    <h3 class="text-red-400 font-bold mb-1 uppercase text-[10px] flex items-center gap-1.5"><i class="fa-solid fa-clone text-red-400"></i> 3. Cartões e Penalidades</h3>
+                    <p class="text-gray-300 leading-relaxed text-[11px]">Abaixo do placar de cada jogador, há pequenos botões de cartões. O cartão <strong>Amarelo</strong> é apenas uma advertência, enquanto o cartão <strong>Vermelho</strong> atribui automaticamente +1 ponto ao adversário por penalidade.</p>
+                </div>
+
+                <div class="bg-amip-darkbg p-3 rounded-xl border border-gray-800">
+                    <h3 class="text-emerald-400 font-bold mb-1 uppercase text-[10px] flex items-center gap-1.5"><i class="fa-solid fa-keyboard text-emerald-400"></i> 4. Ferramentas Avançadas</h3>
+                    <ul class="text-gray-300 leading-relaxed text-[11px] list-disc list-inside space-y-1">
+                        <li><strong>Desfazer:</strong> Errou? Clique em "Desfazer" no cabeçalho ou use <code>Ctrl + Z</code>.</li>
+                        <li><strong>Trocar Lados:</strong> Inverte os atletas na tela (Ocorre automaticamente no 5º ponto do set decisivo).</li>
+                        <li><strong>Súmula Digital:</strong> Mostra o relatório final da partida e permite enviar o resultado via WhatsApp.</li>
+                        <li><strong>Tela 16:9:</strong> Abre uma segunda janela com visual ampliado, ideal para exibir em monitores ou TVs para a torcida.</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== MODAL 5: SOBRE A AMIP INSTITUCIONAL ==================== -->
+    <div id="amip-info-modal" class="fixed inset-0 bg-black/90 backdrop-blur-sm z-50 hidden flex items-center justify-center p-3">
+        <div class="bg-amip-cardbg border border-amip-blue/50 rounded-2xl p-4 md:p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto text-gray-100 shadow-2xl">
+            <!-- Header Institucional -->
+            <div class="flex justify-between items-center border-b border-gray-800 pb-3 mb-4 shrink-0">
+                <div class="flex items-center gap-3">
+                    <div class="bg-amip-blue/20 p-2 rounded-xl border border-amip-blue/40 text-amip-gold">
+                        <i class="fa-solid fa-table-tennis-paddle-ball text-2xl"></i>
+                    </div>
+                    <div>
+                        <h2 class="text-base font-black text-white leading-tight">SOBRE A AMIP</h2>
+                        <p class="text-[10px] text-amip-gold font-semibold uppercase tracking-wider">Associação de Mesatenistas do Interior de Pernambuco</p>
+                    </div>
+                </div>
+                <button onclick="closeAmipInfoModal()" class="bg-gray-800 hover:bg-gray-700 text-gray-300 px-2.5 py-1 rounded-lg text-xs font-bold transition">
+                    <i class="fa-solid fa-xmark"></i> Fechar
+                </button>
+            </div>
+
+            <!-- Content Institucional (Conforme Texto Fornecido) -->
+            <div class="space-y-4 text-[11px] text-gray-300 leading-relaxed">
+                
+                <div class="bg-amip-darkbg p-3.5 rounded-xl border border-gray-800 shadow-inner">
+                    <p class="mb-2"><strong>Associação de Mesatenistas do Interior de Pernambuco</strong><br>
+                    A AMIP Tênis de Mesa é uma associação esportiva sem fins lucrativos dedicada ao desenvolvimento do tênis de mesa em Caruaru e região, no interior de Pernambuco.</p>
+                    
+                    <p class="mb-2">Nossa missão é promover o esporte em todas as suas dimensões, desde a iniciação e o lazer até a participação em competições nacionais e internacionais, atendendo a todas as idades (de 7 a 70 anos).</p>
+                    
+                    <p class="mb-2">Acreditamos no poder transformador do esporte e trabalhamos para fortalecer a prática do tênis de mesa como ferramenta de educação, saúde e integração social.</p>
+                    
+                    <p class="mb-2">A AMIP Tênis de Mesa reafirma seu compromisso com a inclusão social, a cidadania e o acesso ao esporte para todos.</p>
+                    
+                    <p class="mb-2">Informamos à sociedade que a AMIP oferece atividades de tênis de mesa também voltadas para pessoas com deficiência, promovendo um ambiente acolhedor, acessível e respeitoso, onde cada participante é incentivado a desenvolver suas habilidades, autonomia, autoestima e convivência social através do esporte.</p>
+                    
+                    <p class="mb-2">Temos a alegria de contar com grandes exemplos de superação e dedicação em nossa equipe, como o atleta paralímpico Edson Moisés, campeão da Classe 7 da Copa Brasil Caruaru 2026, resultado que representa não apenas uma conquista esportiva, mas também a força da inclusão e da oportunidade através do esporte.</p>
+
+                    <p class="mb-2">Acreditamos que o esporte é uma ferramenta de transformação social e inclusão, capaz de gerar oportunidades, fortalecer vínculos e garantir mais qualidade de vida para crianças, adolescentes, jovens e adultos.</p>
+                    
+                    <p>A AMIP segue trabalhando para construir uma sociedade mais inclusiva, humana e igualitária, onde todos tenham a oportunidade de participar, aprender e crescer por meio do esporte.</p>
+                </div>
+
+                <p class="text-center font-black text-amip-gold text-xs uppercase tracking-widest my-2 animate-pulse">Junte-se a nós e faça parte dessa rede de paixão pelo tênis de mesa! 🏓</p>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <div class="bg-amip-panelbg p-3.5 rounded-xl border border-blue-900/50">
+                        <h3 class="text-blue-300 font-black uppercase tracking-wider mb-2 flex items-center gap-1.5"><i class="fa-solid fa-bullseye text-blue-400"></i> Missão</h3>
+                        <p>Promover o desenvolvimento do tênis de mesa no interior de Pernambuco, formando atletas, incentivando a prática esportiva e contribuindo para a educação, inclusão social e qualidade de vida da população, por meio de treinamentos, projetos educacionais, eventos esportivos e parcerias institucionais.</p>
+                    </div>
+
+                    <div class="bg-amip-panelbg p-3.5 rounded-xl border border-blue-900/50">
+                        <h3 class="text-blue-300 font-black uppercase tracking-wider mb-2 flex items-center gap-1.5"><i class="fa-solid fa-eye text-blue-400"></i> Visão</h3>
+                        <p>Ser reconhecida como uma das principais referências do tênis de mesa no Nordeste e no Brasil, destacando-se pela formação de atletas, pela organização de eventos de alto nível e pelo impacto social através do esporte.</p>
+                    </div>
+                </div>
+
+                <div class="bg-amip-panelbg p-3.5 rounded-xl border border-blue-900/50">
+                    <h3 class="text-blue-300 font-black uppercase tracking-wider mb-3 flex items-center gap-1.5"><i class="fa-regular fa-star text-blue-400"></i> Valores</h3>
+                    <ul class="space-y-2 list-disc list-inside">
+                        <li><strong>Formação humana através do esporte</strong> – Utilizar o esporte como ferramenta de desenvolvimento educacional, social e humano.</li>
+                        <li><strong>Disciplina e excelência esportiva</strong> – Buscar constantemente a evolução técnica e competitiva dos atletas.</li>
+                        <li><strong>Inclusão e acesso ao esporte</strong> – Garantir oportunidades para que pessoas de diferentes idades e origens possam praticar o tênis de mesa.</li>
+                        <li><strong>Ética e respeito</strong> – Valorizar o respeito entre atletas, treinadores, instituições e a comunidade.</li>
+                        <li><strong>Compromisso com o desenvolvimento do esporte</strong> – Atuar de forma organizada e responsável para fortalecer o tênis de mesa na região.</li>
+                        <li><strong>Cooperação e parcerias</strong> – Construir relações com escolas, instituições públicas e privadas para ampliar o alcance do esporte.</li>
+                        <li><strong>Inovação e aprendizado contínuo</strong> – Buscar capacitação técnica, atualização metodológica e intercâmbio com o cenário nacional e internacional.</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== LÓGICA JAVASCRIPT AUTÔNOMA ==================== -->
+    <script>
+        /* ==================== ESTADO GLOBAL DA PARTIDA ==================== */
+        const DEFAULT_STATE = {
+            p1: { name: "SÉRGIO SILVA", club: "AMIP CARUARU", score: 0, sets: 0, yellowCards: 0, redCards: 0, timeoutUsed: false },
+            p2: { name: "LUCAS MENEZES", club: "SPORT RECIFE", score: 0, sets: 0, yellowCards: 0, redCards: 0, timeoutUsed: false },
+            servingPlayer: 1, // 1 ou 2
+            initialServerOfSet: 1,
+            currentSet: 1,
+            maxSets: 5,
+            setsHistory: [], // [{p1: 11, p2: 9}, ...]
+            isDeuce: false,
+            matchEnded: false,
+            winner: null,
+            decidingSetSideSwapped: false,
+            
+            // Configurações do Serve Clock
+            clockPreset: 15,
+            clockTimeLeft: 15,
+            clockRunning: false,
+            clockMode: 'AUTO', // 'AUTO' ou 'MANUAL'
+            
+            audioEnabled: true
+        };
+
+        let state = JSON.parse(JSON.stringify(DEFAULT_STATE));
+        let historyStack = [];
+
+        // Web Audio & Timers
+        let clockInterval = null;
+        let timeoutInterval = null;
+        let audioCtx = null;
+
+        // BroadcastChannel para Segunda Tela
+        const broadcastChannel = new BroadcastChannel('AMIP_TABLE_TENNIS_SCOREBOARD');
+
+        /* ==================== INICIALIZAÇÃO ==================== */
+        window.onload = function() {
+            document.getElementById('p1-name').addEventListener('input', (e) => { state.p1.name = e.target.value.toUpperCase(); broadcastState(); });
+            document.getElementById('p1-club').addEventListener('input', (e) => { state.p1.club = e.target.value.toUpperCase(); broadcastState(); });
+            document.getElementById('p2-name').addEventListener('input', (e) => { state.p2.name = e.target.value.toUpperCase(); broadcastState(); });
+            document.getElementById('p2-club').addEventListener('input', (e) => { state.p2.club = e.target.value.toUpperCase(); broadcastState(); });
+            document.getElementById('match-title').addEventListener('input', broadcastState);
+
+            document.addEventListener('keydown', handleKeyPress);
+
+            saveHistorySnapshot();
+            updateUI();
+        };
+
+        /* ==================== SINTETIZADOR NATIVO DE ÁUDIO ==================== */
+        function initAudio() {
+            if (!audioCtx) {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            }
+        }
+
+        function toggleAudio() {
+            state.audioEnabled = !state.audioEnabled;
+            const btn = document.getElementById('audio-btn');
+            if (state.audioEnabled) {
+                btn.classList.remove('opacity-50');
+            } else {
+                btn.classList.add('opacity-50');
+            }
+        }
+
+        function playBeep(freq = 600, duration = 0.1, type = 'sine') {
+            if (!state.audioEnabled) return;
+            try {
+                initAudio();
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.type = type;
+                osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+                gain.gain.setValueAtTime(0.15, audioCtx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + duration);
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                osc.start();
+                osc.stop(audioCtx.currentTime + duration);
+            } catch(e){}
+        }
+
+        function playWhistleSound() {
+            if (!state.audioEnabled) return;
+            try {
+                initAudio();
+                const osc1 = audioCtx.createOscillator();
+                const osc2 = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                
+                osc1.type = 'triangle';
+                osc2.type = 'sine';
+                
+                osc1.frequency.setValueAtTime(2400, audioCtx.currentTime);
+                osc2.frequency.setValueAtTime(2800, audioCtx.currentTime);
+                
+                gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.4);
+                
+                osc1.connect(gain);
+                osc2.connect(gain);
+                gain.connect(audioCtx.destination);
+                
+                osc1.start(); osc2.start();
+                osc1.stop(audioCtx.currentTime + 0.4);
+                osc2.stop(audioCtx.currentTime + 0.4);
+            } catch(e){}
+        }
+
+        function playBuzzer() {
+            if (!state.audioEnabled) return;
+            try {
+                initAudio();
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(180, audioCtx.currentTime);
+                gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.6);
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                osc.start();
+                osc.stop(audioCtx.currentTime + 0.6);
+            } catch(e){}
+        }
+
+        /* ==================== PILHA DE HISTÓRICO (UNDO) ==================== */
+        function saveHistorySnapshot() {
+            if (historyStack.length > 30) historyStack.shift();
+            historyStack.push(JSON.stringify(state));
+        }
+
+        function undo() {
+            if (historyStack.length <= 1) return;
+            historyStack.pop();
+            const previousState = JSON.parse(historyStack[historyStack.length - 1]);
+            state = previousState;
+            stopClock();
+            updateUI();
+            playBeep(400, 0.08);
+        }
+
+        /* ==================== REGRAS ITTF & PONTUAÇÃO ==================== */
+        function addPoint(playerNumber) {
+            if (state.matchEnded) return;
+            saveHistorySnapshot();
+
+            if (playerNumber === 1) state.p1.score++;
+            else state.p2.score++;
+
+            playBeep(playerNumber === 1 ? 750 : 850, 0.12);
+
+            checkDecidingSetSideSwap();
+            calculateServe();
+            checkSetWinner();
+
+            if (state.clockMode === 'AUTO' && !state.matchEnded) {
+                resetClock();
+                startClock();
+            } else {
+                resetClock();
+            }
+
+            updateUI();
+        }
+
+        function removePoint(playerNumber) {
+            if (playerNumber === 1 && state.p1.score > 0) {
+                saveHistorySnapshot();
+                state.p1.score--;
+            } else if (playerNumber === 2 && state.p2.score > 0) {
+                saveHistorySnapshot();
+                state.p2.score--;
+            }
+            calculateServe();
+            updateUI();
+        }
+
+        function calculateServe() {
+            const totalPoints = state.p1.score + state.p2.score;
+            state.isDeuce = (state.p1.score >= 10 && state.p2.score >= 10);
+
+            if (state.isDeuce) {
+                const pointsInDeuce = totalPoints - 20;
+                const switches = Math.floor(pointsInDeuce);
+                state.servingPlayer = ((state.initialServerOfSet - 1 + switches) % 2) + 1;
+            } else {
+                const switches = Math.floor(totalPoints / 2);
+                state.servingPlayer = ((state.initialServerOfSet - 1 + switches) % 2) + 1;
+            }
+        }
+
+        function manualToggleServe() {
+            saveHistorySnapshot();
+            state.servingPlayer = state.servingPlayer === 1 ? 2 : 1;
+            updateUI();
+            playBeep(500, 0.08);
+        }
+
+        function checkDecidingSetSideSwap() {
+            const setsToWin = Math.ceil(state.maxSets / 2);
+            const isDecidingSet = (state.p1.sets === setsToWin - 1 && state.p2.sets === setsToWin - 1);
+
+            if (isDecidingSet && !state.decidingSetSideSwapped) {
+                if (state.p1.score === 5 || state.p2.score === 5) {
+                    state.decidingSetSideSwapped = true;
+                    swapSides(false);
+                    showToastAlert("TROCA DE LADOS! (5º Ponto no Set Decisivo)");
+                }
+            }
+        }
+
+        function checkSetWinner() {
+            const p1 = state.p1.score;
+            const p2 = state.p2.score;
+
+            if ((p1 >= 11 || p2 >= 11) && Math.abs(p1 - p2) >= 2) {
+                state.setsHistory.push({ p1: p1, p2: p2 });
+
+                let setWinner = p1 > p2 ? 1 : 2;
+                if (setWinner === 1) state.p1.sets++;
+                else state.p2.sets++;
+
+                const setsToWin = Math.ceil(state.maxSets / 2);
+
+                if (state.p1.sets === setsToWin || state.p2.sets === setsToWin) {
+                    state.matchEnded = true;
+                    state.winner = setWinner === 1 ? state.p1.name : state.p2.name;
+                    playWhistleSound();
+                    setTimeout(showWinnerModal, 300);
+                } else {
+                    state.p1.score = 0;
+                    state.p2.score = 0;
+                    state.currentSet++;
+                    state.initialServerOfSet = state.initialServerOfSet === 1 ? 2 : 1;
+                    state.servingPlayer = state.initialServerOfSet;
+                    state.decidingSetSideSwapped = false;
+                    playWhistleSound();
+                    showToastAlert(`FIM DO SET! Vencedor: ${setWinner === 1 ? state.p1.name : state.p2.name}`);
+                }
+            }
+        }
+
+        /* ==================== CARTÕES DISCIPLINARES ==================== */
+        function giveCard(playerNumber, cardType) {
+            saveHistorySnapshot();
+            const player = playerNumber === 1 ? state.p1 : state.p2;
+            const opponentNumber = playerNumber === 1 ? 2 : 1;
+
+            if (cardType === 'yellow') {
+                player.yellowCards++;
+                playBeep(400, 0.2, 'square');
+                showToastAlert(`Cartão Amarelo para ${player.name}`);
+            } else if (cardType === 'red') {
+                player.redCards++;
+                playBuzzer();
+                showToastAlert(`Cartão Vermelho para ${player.name}! +1 Ponto ao Adversário.`);
+                addPoint(opponentNumber);
+            }
+            updateUI();
+        }
+
+        /* ==================== TIMEOUT (60 SEGUNDOS) ==================== */
+        function triggerTimeout(playerNumber) {
+            const player = playerNumber === 1 ? state.p1 : state.p2;
+            if (player.timeoutUsed) {
+                showToastAlert(`${player.name} já utilizou o Timeout!`);
+                return;
+            }
+
+            player.timeoutUsed = true;
+            document.getElementById('timeout-player-name').textContent = player.name;
+            document.getElementById('timeout-modal').classList.remove('hidden');
+
+            let secondsLeft = 60;
+            document.getElementById('timeout-timer').textContent = secondsLeft;
+
+            playWhistleSound();
+
+            clearInterval(timeoutInterval);
+            timeoutInterval = setInterval(() => {
+                secondsLeft--;
+                document.getElementById('timeout-timer').textContent = secondsLeft;
+                if (secondsLeft <= 0) {
+                    closeTimeoutModal();
+                    playWhistleSound();
+                }
+            }, 1000);
+
+            updateUI();
+        }
+
+        function closeTimeoutModal() {
+            clearInterval(timeoutInterval);
+            document.getElementById('timeout-modal').classList.add('hidden');
+        }
+
+        /* ==================== SERVE CLOCK LOGIC ==================== */
+        function setClockPreset(seconds) {
+            state.clockPreset = seconds;
+            resetClock();
+        }
+
+        function promptCustomClock() {
+            const val = prompt("Digite a duração do Serve Clock em segundos:", state.clockPreset);
+            if (val && !isNaN(val) && val > 0) {
+                setClockPreset(parseInt(val));
+            }
+        }
+
+        function setClockMode(mode) {
+            state.clockMode = mode;
+            document.getElementById('mode-auto-btn').className = mode === 'AUTO' 
+                ? "flex-1 text-[9px] font-extrabold py-0.5 rounded transition bg-amip-blue text-white shadow"
+                : "flex-1 text-[9px] font-extrabold py-0.5 rounded transition text-gray-400 hover:text-white";
+            
+            document.getElementById('mode-manual-btn').className = mode === 'MANUAL' 
+                ? "flex-1 text-[9px] font-extrabold py-0.5 rounded transition bg-amip-blue text-white shadow"
+                : "flex-1 text-[9px] font-extrabold py-0.5 rounded transition text-gray-400 hover:text-white";
+        }
+
+        function toggleClock() {
+            if (state.clockRunning) {
+                stopClock();
+            } else {
+                startClock();
+            }
+        }
+
+        function startClock() {
+            if (state.clockRunning) return;
+            state.clockRunning = true;
+            
+            const startBtn = document.getElementById('clock-start-btn');
+            if (startBtn) {
+                startBtn.className = "flex-1 bg-amber-600 hover:bg-amber-500 text-white font-extrabold py-1 px-1 rounded-lg text-[11px] shadow transition active:scale-95 flex items-center justify-center gap-1";
+                document.getElementById('start-btn-label').textContent = "Pausar";
+            }
+
+            clearInterval(clockInterval);
+            clockInterval = setInterval(() => {
+                if (state.clockTimeLeft > 0) {
+                    state.clockTimeLeft--;
+                    if (state.clockTimeLeft <= 3 && state.clockTimeLeft > 0) {
+                        playBeep(900, 0.08);
+                    }
+                } else {
+                    stopClock();
+                    playBuzzer();
+                    showToastAlert("ESTOURO DE TEMPO DE SAQUE (0s)!");
+                }
+                updateClockUI();
+                broadcastState();
+            }, 1000);
+            updateClockUI();
+        }
+
+        function stopClock() {
+            state.clockRunning = false;
+            clearInterval(clockInterval);
+            const startBtn = document.getElementById('clock-start-btn');
+            if (startBtn) {
+                startBtn.className = "flex-1 bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold py-1 px-1 rounded-lg text-[11px] shadow transition active:scale-95 flex items-center justify-center gap-1";
+                document.getElementById('start-btn-label').textContent = "Iniciar";
+            }
+        }
+
+        function resetClock() {
+            stopClock();
+            state.clockTimeLeft = state.clockPreset;
+            updateClockUI();
+            broadcastState();
+        }
+
+        function updateClockUI() {
+            const timerElem = document.getElementById('serve-clock-timer');
+            const progressBar = document.getElementById('clock-progress-bar');
+            
+            if (timerElem) {
+                timerElem.textContent = state.clockTimeLeft < 10 ? `0${state.clockTimeLeft}` : state.clockTimeLeft;
+                if (state.clockTimeLeft <= 3) {
+                    timerElem.className = "serve-clock-digit text-red-500 animate-pulse leading-none";
+                } else {
+                    timerElem.className = "serve-clock-digit text-amip-gold leading-none";
+                }
+            }
+
+            if (progressBar) {
+                const percentage = (state.clockTimeLeft / state.clockPreset) * 100;
+                progressBar.style.width = `${percentage}%`;
+                if (state.clockTimeLeft <= 3) progressBar.className = "absolute bottom-0 left-0 h-1 bg-red-600 transition-all duration-200";
+                else progressBar.className = "absolute bottom-0 left-0 h-1 bg-amip-gold transition-all duration-200";
+            }
+        }
+
+        /* ==================== AÇÕES DE INVERSÃO E RESET ==================== */
+        function swapSides(saveHistory = true) {
+            if (saveHistory) saveHistorySnapshot();
+
+            const temp = JSON.parse(JSON.stringify(state.p1));
+            state.p1 = JSON.parse(JSON.stringify(state.p2));
+            state.p2 = temp;
+
+            state.servingPlayer = state.servingPlayer === 1 ? 2 : 1;
+            state.initialServerOfSet = state.initialServerOfSet === 1 ? 2 : 1;
+
+            document.getElementById('p1-name').value = state.p1.name;
+            document.getElementById('p1-club').value = state.p1.club;
+            document.getElementById('p2-name').value = state.p2.name;
+            document.getElementById('p2-club').value = state.p2.club;
+
+            updateUI();
+            playBeep(650, 0.15);
+        }
+
+        function changeSetMode(value) {
+            state.maxSets = parseInt(value);
+            updateUI();
+        }
+
+        function confirmResetMatch() {
+            if (confirm("Tem certeza que deseja reiniciar toda a partida? O placar será zerado.")) {
+                state = JSON.parse(JSON.stringify(DEFAULT_STATE));
+                document.getElementById('p1-name').value = state.p1.name;
+                document.getElementById('p1-club').value = state.p1.club;
+                document.getElementById('p2-name').value = state.p2.name;
+                document.getElementById('p2-club').value = state.p2.club;
+                historyStack = [];
+                saveHistorySnapshot();
+                closeWinnerModal();
+                closeSumulaModal();
+                updateUI();
+            }
+        }
+
+        function toggleFullscreen() {
+            if (!document.fullscreenElement) {
+                document.documentElement.requestFullscreen().catch(() => {});
+            } else {
+                if (document.exitFullscreen) document.exitFullscreen();
+            }
+        }
+
+        /* ==================== SÚMULA DIGITAL & ENVIO WHATSAPP ==================== */
+        function openSumulaModal() {
+            document.getElementById('sum-event').textContent = document.getElementById('match-title').value;
+            document.getElementById('sum-format').textContent = `Melhor de ${state.maxSets} Sets (Vence ${Math.ceil(state.maxSets/2)})`;
+            
+            document.getElementById('sum-p1-name').textContent = state.p1.name;
+            document.getElementById('sum-p1-club').textContent = state.p1.club;
+            document.getElementById('sum-p1-sets').textContent = state.p1.sets;
+
+            document.getElementById('sum-p2-name').textContent = state.p2.name;
+            document.getElementById('sum-p2-club').textContent = state.p2.club;
+            document.getElementById('sum-p2-sets').textContent = state.p2.sets;
+
+            document.getElementById('sum-p1-cards').textContent = `${state.p1.yellowCards} Amarelo(s) | ${state.p1.redCards} Vermelho(s)`;
+            document.getElementById('sum-p2-cards').textContent = `${state.p2.yellowCards} Amarelo(s) | ${state.p2.redCards} Vermelho(s)`;
+
+            const tbody = document.getElementById('sum-sets-tbody');
+            if (state.setsHistory.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="4" class="p-3 text-gray-500 italic">Nenhum set finalizado até o momento.</td></tr>`;
+            } else {
+                tbody.innerHTML = state.setsHistory.map((s, idx) => {
+                    const winner = s.p1 > s.p2 ? state.p1.name : state.p2.name;
+                    return `
+                        <tr class="hover:bg-amip-panelbg transition">
+                            <td class="p-2 border border-gray-800 font-bold text-amip-gold">Set ${idx+1}</td>
+                            <td class="p-2 border border-gray-800 ${s.p1 > s.p2 ? 'font-black text-emerald-400' : 'text-gray-300'}">${s.p1}</td>
+                            <td class="p-2 border border-gray-800 ${s.p2 > s.p1 ? 'font-black text-emerald-400' : 'text-gray-300'}">${s.p2}</td>
+                            <td class="p-2 border border-gray-800 font-semibold text-white">${winner}</td>
+                        </tr>
+                    `;
+                }).join('');
+            }
+
+            document.getElementById('sumula-modal').classList.remove('hidden');
+        }
+
+        function closeSumulaModal() {
+            document.getElementById('sumula-modal').classList.add('hidden');
+        }
+
+        function sendScoresheetWhatsApp() {
+            const title = document.getElementById('match-title').value || "PARTIDA DE TÊNIS DE MESA";
+            const setsToWin = Math.ceil(state.maxSets / 2);
+            
+            let text = `🏓 *SÚMULA DIGITAL - AMIP CARUARU/PE* 🏓\n`;
+            text += `🏆 *Evento:* ${title}\n`;
+            text += `⚙️ *Formato:* Melhor de ${state.maxSets} Sets (Vence ${setsToWin})\n`;
+            text += `-----------------------------------\n`;
+            text += `👤 *ATLETA A:* ${state.p1.name} (${state.p1.club})\n`;
+            text += `👤 *ATLETA B:* ${state.p2.name} (${state.p2.club})\n`;
+            text += `-----------------------------------\n`;
+            text += `📊 *RESULTADO DOS SETS:* ${state.p1.sets} x ${state.p2.sets}\n`;
+            
+            if (state.matchEnded && state.winner) {
+                text += `👑 *VENCEDOR:* ${state.winner}\n`;
+            } else {
+                text += `⏳ *Status:* Partida em Andamento\n`;
+            }
+            
+            text += `-----------------------------------\n`;
+            text += `📝 *PARCIAIS POR SET:*\n`;
+            
+            if (state.setsHistory.length === 0) {
+                text += `_Nenhum set finalizado ainda_\n`;
+            } else {
+                state.setsHistory.forEach((s, idx) => {
+                    const winnerName = s.p1 > s.p2 ? state.p1.name : state.p2.name;
+                    text += `• *Set ${idx + 1}:* ${s.p1} x ${s.p2} ➔ ${winnerName}\n`;
+                });
+            }
+            
+            text += `-----------------------------------\n`;
+            text += `🟨🟥 *SANÇÕES DISCIPLINARES:*\n`;
+            text += `• ${state.p1.name}: ${state.p1.yellowCards}🟨 | ${state.p1.redCards}🟥\n`;
+            text += `• ${state.p2.name}: ${state.p2.yellowCards}🟨 | ${state.p2.redCards}🟥\n`;
+            text += `-----------------------------------\n`;
+            text += `📍 _Associação dos Mesatenistas do Interior de Pernambuco_`;
+
+            const phoneInput = document.getElementById('wa-number') ? document.getElementById('wa-number').value.replace(/\D/g, '') : '';
+            const encodedText = encodeURIComponent(text);
+            
+            let waUrl = `https://api.whatsapp.com/send?text=${encodedText}`;
+            if (phoneInput && phoneInput.length >= 8) {
+                let formattedPhone = phoneInput;
+                if (!formattedPhone.startsWith('55')) {
+                    formattedPhone = '55' + formattedPhone;
+                }
+                waUrl = `https://api.whatsapp.com/send?phone=${formattedPhone}&text=${encodedText}`;
+            }
+
+            window.open(waUrl, '_blank');
+        }
+        
+        /* ==================== TUTORIAL MODAL ==================== */
+        function openTutorialModal() {
+            document.getElementById('tutorial-modal').classList.remove('hidden');
+        }
+
+        function closeTutorialModal() {
+            document.getElementById('tutorial-modal').classList.add('hidden');
+        }
+
+        /* ==================== AMIP INFO MODAL (SOBRE A AMIP) ==================== */
+        function openAmipInfoModal() {
+            document.getElementById('amip-info-modal').classList.remove('hidden');
+        }
+
+        function closeAmipInfoModal() {
+            document.getElementById('amip-info-modal').classList.add('hidden');
+        }
+
+        /* ==================== ATALHOS DE TECLADO ==================== */
+        function handleKeyPress(e) {
+            if (['INPUT', 'SELECT', 'TEXTAREA'].includes(document.activeElement.tagName)) return;
+
+            if (e.key === 'ArrowLeft') {
+                addPoint(1);
+            } else if (e.key === 'ArrowRight') {
+                addPoint(2);
+            } else if (e.code === 'Space' || e.key.toLowerCase() === 's') {
+                e.preventDefault();
+                toggleClock();
+            } else if (e.key.toLowerCase() === 'r') {
+                resetClock();
+            } else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z') {
+                e.preventDefault();
+                undo();
+            }
+        }
+
+        /* ==================== ATUALIZAÇÃO GERAL DA UI ==================== */
+        function updateUI() {
+            document.getElementById('p1-score').textContent = state.p1.score < 10 ? `0${state.p1.score}` : state.p1.score;
+            document.getElementById('p2-score').textContent = state.p2.score < 10 ? `0${state.p2.score}` : state.p2.score;
+
+            document.getElementById('p1-sets').textContent = state.p1.sets;
+            document.getElementById('p2-sets').textContent = state.p2.sets;
+
+            const p1Ball = document.getElementById('p1-serve-ball');
+            const p2Ball = document.getElementById('p2-serve-ball');
+            const p1Badge = document.getElementById('p1-serve-badge');
+            const p2Badge = document.getElementById('p2-serve-badge');
+
+            if (state.servingPlayer === 1) {
+                p1Ball.classList.remove('opacity-20');
+                p2Ball.classList.add('opacity-20');
+                p1Badge.classList.remove('hidden');
+                p2Badge.classList.add('hidden');
+            } else {
+                p1Ball.classList.add('opacity-20');
+                p2Ball.classList.remove('opacity-20');
+                p1Badge.classList.add('hidden');
+                p2Badge.classList.remove('hidden');
+            }
+
+            document.getElementById('p1-yellow-count').textContent = state.p1.yellowCards;
+            document.getElementById('p1-red-count').textContent = state.p1.redCards;
+            document.getElementById('p2-yellow-count').textContent = state.p2.yellowCards;
+            document.getElementById('p2-red-count').textContent = state.p2.redCards;
+
+            const p1ToBtn = document.getElementById('p1-timeout-btn');
+            const p2ToBtn = document.getElementById('p2-timeout-btn');
+            if (state.p1.timeoutUsed) p1ToBtn.className = "bg-gray-800 text-gray-500 border border-gray-700 px-1.5 py-0.5 rounded text-[10px] font-bold line-through opacity-60 cursor-not-allowed";
+            else p1ToBtn.className = "bg-amip-panelbg hover:bg-blue-900/60 text-blue-300 border border-blue-500/40 px-1.5 py-0.5 rounded text-[10px] font-bold transition";
+
+            if (state.p2.timeoutUsed) p2ToBtn.className = "bg-gray-800 text-gray-500 border border-gray-700 px-1.5 py-0.5 rounded text-[10px] font-bold line-through opacity-60 cursor-not-allowed";
+            else p2ToBtn.className = "bg-amip-panelbg hover:bg-blue-900/60 text-blue-300 border border-blue-500/40 px-1.5 py-0.5 rounded text-[10px] font-bold transition";
+
+            const historyContainer = document.getElementById('sets-history-container');
+            if (state.setsHistory.length === 0) {
+                historyContainer.innerHTML = `<span class="text-gray-600 text-[10px] italic">Sem sets concluídos</span>`;
+            } else {
+                historyContainer.innerHTML = state.setsHistory.map((s, idx) => `
+                    <span class="bg-amip-darkbg px-1.5 py-0.5 rounded border border-gray-800 text-gray-300">
+                        S${idx+1}: <strong class="text-amip-gold">${s.p1}</strong>-<strong>${s.p2}</strong>
+                    </span>
+                `).join('');
+            }
+
+            updateClockUI();
+            broadcastState();
+        }
+
+        function broadcastState() {
+            const data = {
+                ...state,
+                matchTitle: document.getElementById('match-title').value
+            };
+            broadcastChannel.postMessage(data);
+            localStorage.setItem('AMIP_TT_SCOREBOARD_STATE', JSON.stringify(data));
+        }
+
+        /* ==================== SEGUNDA TELA DOS ATLETAS (DISPLAY 16:9) ==================== */
+        function openSecondScreen() {
+            const athleteDisplayWindow = window.open('', 'AMIP_Athlete_Display', 'width=1280,height=720,scrollbars=no,resizable=yes');
+            if (!athleteDisplayWindow) {
+                alert("Por favor, permita janelas popup para abrir a Segunda Tela.");
+                return;
+            }
+
+            athleteDisplayWindow.document.write(`
+                <!DOCTYPE html>
+                <html lang="pt-BR" class="h-full">
+                <head>
+                    <meta charset="UTF-8">
+                    <title>Placar AMIP - Tela dos Atletas 16:9</title>
+                    <script src="https://cdn.tailwindcss.com"><\/script>
+                    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+                    <style>
+                        body { background: #050811; color: white; font-family: sans-serif; overflow: hidden; height: 100vh; }
+                        .digital-huge { font-family: 'Impact', sans-serif; font-size: clamp(6rem, 20vh, 14rem); line-height: 0.9; }
+                    </style>
+                </head>
+                <body class="p-6 flex flex-col justify-between h-screen box-border">
+                    <header class="flex justify-between items-center border-b border-blue-900/50 pb-3">
+                        <div class="flex items-center gap-3">
+                            <div class="bg-blue-700 p-2 rounded-xl text-yellow-400 text-2xl"><i class="fa-solid fa-table-tennis-paddle-ball"></i></div>
+                            <div>
+                                <h1 class="text-xl font-black text-white tracking-wider">AMIP CARUARU - PE</h1>
+                                <p class="text-xs text-yellow-400 font-bold">Associação dos Mesatenistas do Interior de Pernambuco</p>
+                            </div>
+                        </div>
+                        <h2 id="disp-title" class="text-lg font-bold text-gray-300 uppercase tracking-widest">FINAL MASCULINA</h2>
+                        <div id="disp-clock-box" class="bg-black/60 border border-yellow-500/40 px-4 py-1 rounded-xl text-center">
+                            <span class="text-xs font-bold text-gray-400 block">SERVE CLOCK</span>
+                            <span id="disp-clock" class="text-3xl font-black text-yellow-400 font-mono">15</span>
+                        </div>
+                    </header>
+
+                    <main class="grid grid-cols-2 gap-8 my-auto items-center">
+                        <div id="p1-box" class="bg-gradient-to-b from-blue-950/60 to-black/80 border-2 border-blue-600/50 rounded-3xl p-6 flex flex-col justify-between relative shadow-2xl">
+                            <div class="flex justify-between items-start">
+                                <div>
+                                    <span id="disp-p1-serve" class="hidden text-xs font-extrabold px-3 py-1 bg-yellow-400 text-black rounded-full uppercase tracking-widest animate-pulse">SAQUE</span>
+                                    <h2 id="disp-p1-name" class="text-3xl font-black text-white mt-2">ATLETA 1</h2>
+                                    <p id="disp-p1-club" class="text-sm font-bold text-yellow-400">AMIP</p>
+                                </div>
+                                <div class="text-right">
+                                    <span class="text-xs font-bold text-gray-400 block">SETS</span>
+                                    <span id="disp-p1-sets" class="text-5xl font-black text-yellow-400">0</span>
+                                </div>
+                            </div>
+                            <div class="text-center py-6">
+                                <span id="disp-p1-score" class="digital-huge text-yellow-400 font-black tracking-tight">00</span>
+                            </div>
+                        </div>
+
+                        <div id="p2-box" class="bg-gradient-to-b from-blue-950/60 to-black/80 border-2 border-blue-600/50 rounded-3xl p-6 flex flex-col justify-between relative shadow-2xl">
+                            <div class="flex justify-between items-start">
+                                <div>
+                                    <span id="disp-p2-serve" class="hidden text-xs font-extrabold px-3 py-1 bg-yellow-400 text-black rounded-full uppercase tracking-widest animate-pulse">SAQUE</span>
+                                    <h2 id="disp-p2-name" class="text-3xl font-black text-white mt-2">ATLETA 2</h2>
+                                    <p id="disp-p2-club" class="text-sm font-bold text-yellow-400">AMIP</p>
+                                </div>
+                                <div class="text-right">
+                                    <span class="text-xs font-bold text-gray-400 block">SETS</span>
+                                    <span id="disp-p2-sets" class="text-5xl font-black text-yellow-400">0</span>
+                                </div>
+                            </div>
+                            <div class="text-center py-6">
+                                <span id="disp-p2-score" class="digital-huge text-yellow-400 font-black tracking-tight">00</span>
+                            </div>
+                        </div>
+                    </main>
+
+                    <footer class="text-center text-xs text-gray-500 font-bold uppercase tracking-widest border-t border-gray-900 pt-2">
+                        Placar Oficial AMIP - Tênis de Mesa Pernambucano
+                    </footer>
+
+                    <script>
+                        const bc = new BroadcastChannel('AMIP_TABLE_TENNIS_SCOREBOARD');
+                        bc.onmessage = (e) => { updateDisplay(e.data); };
+                        
+                        const saved = localStorage.getItem('AMIP_TT_SCOREBOARD_STATE');
+                        if (saved) updateDisplay(JSON.parse(saved));
+
+                        function updateDisplay(s) {
+                            document.getElementById('disp-title').textContent = s.matchTitle || "PARTIDA DE TÊNIS DE MESA";
+                            
+                            document.getElementById('disp-p1-name').textContent = s.p1.name;
+                            document.getElementById('disp-p1-club').textContent = s.p1.club;
+                            document.getElementById('disp-p1-score').textContent = s.p1.score < 10 ? '0' + s.p1.score : s.p1.score;
+                            document.getElementById('disp-p1-sets').textContent = s.p1.sets;
+                            
+                            document.getElementById('disp-p2-name').textContent = s.p2.name;
+                            document.getElementById('disp-p2-club').textContent = s.p2.club;
+                            document.getElementById('disp-p2-score').textContent = s.p2.score < 10 ? '0' + s.p2.score : s.p2.score;
+                            document.getElementById('disp-p2-sets').textContent = s.p2.sets;
+
+                            if(s.servingPlayer === 1) {
+                                document.getElementById('disp-p1-serve').classList.remove('hidden');
+                                document.getElementById('disp-p2-serve').classList.add('hidden');
+                            } else {
+                                document.getElementById('disp-p1-serve').classList.add('hidden');
+                                document.getElementById('disp-p2-serve').classList.remove('hidden');
+                            }
+
+                            document.getElementById('disp-clock').textContent = s.clockTimeLeft < 10 ? '0' + s.clockTimeLeft : s.clockTimeLeft;
+                        }
+                    <\/script>
+                </body>
+                </html>
+            `);
+        }
+
+        /* ==================== UTILITÁRIOS ==================== */
+        function showWinnerModal() {
+            document.getElementById('winner-name').textContent = state.winner;
+            document.getElementById('winner-summary').textContent = `${state.p1.name} (${state.p1.sets}) x (${state.p2.sets}) ${state.p2.name}`;
+            document.getElementById('winner-modal').classList.remove('hidden');
+        }
+
+        function closeWinnerModal() {
+            document.getElementById('winner-modal').classList.add('hidden');
+        }
+
+        function showToastAlert(msg) {
+            const toast = document.createElement('div');
+            toast.className = "fixed bottom-10 left-1/2 transform -translate-x-1/2 bg-amip-gold text-black font-black px-3 py-1.5 rounded-full shadow-2xl z-50 text-[10px] uppercase tracking-wider animate-bounce border-2 border-black";
+            toast.textContent = msg;
+            document.body.appendChild(toast);
+            setTimeout(() => toast.remove(), 2500);
+        }
+    </script>
+</body>
+</html>
